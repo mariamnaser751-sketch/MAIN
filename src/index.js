@@ -128,8 +128,23 @@
 const readline = require('readline');
 const bus = require('./eventBus');
 const store = require('./store');
+const { loadOrders, saveOrders } = require('./persistence');
 require('./listeners'); 
 
+const DB_FILE = 'data/orders.json';
+
+// Load persisted orders on boot
+try {
+  const existing = loadOrders(DB_FILE);
+  if (existing && existing.length) {
+    store.replaceAllOrders(existing);
+    console.log(`Loaded ${existing.length} orders from ${DB_FILE}`);
+  } else {
+    console.log('No existing orders. Starting fresh.');
+  }
+} catch (e) {
+  console.error('Failed to load existing orders:', e.message);
+}
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -166,6 +181,8 @@ function cmdNew() {
         }
         bus.emit("order:created", res.order);
         console.log(`Created order #${res.order.id} (status=new)`);
+        // persist after creation
+        saveOrders(store.getAllOrders(), DB_FILE);
         prompt();
       });
     });

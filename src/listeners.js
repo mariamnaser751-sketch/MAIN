@@ -50,31 +50,48 @@ const store = require('./store');
 // لما أوردر يتعمل
 bus.on("order:created", (order) => {
     console.log(`(listener) Order #${order.id} created for ${order.customer}`);
+    bus.emit("order:statusChanged", { id: order.id, status: order.status });
 });
 
 // تحديثات الحالات
+const { saveOrders } = require('./persistence');
+const DB_FILE = 'data/orders.json';
+
 bus.on("order:paid", ({ id }) => {
     const res = store.updateStatus(id, "paid");
     if (!res.ok) return bus.emit("error", new Error(res.error));
     console.log(`(listener) Order #${id} marked as paid`);
+    bus.emit("order:statusChanged", { id, status: "paid" });
+    saveOrders(store.getAllOrders(), DB_FILE);
 });
 
 bus.on("order:packed", ({ id }) => {
     const res = store.updateStatus(id, "packed");
     if (!res.ok) return bus.emit("error", new Error(res.error));
     console.log(`(listener) Order #${id} marked as packed`);
+    bus.emit("order:statusChanged", { id, status: "packed" });
+    saveOrders(store.getAllOrders(), DB_FILE);
 });
 
 bus.on("order:shipped", ({ id }) => {
     const res = store.updateStatus(id, "shipped");
     if (!res.ok) return bus.emit("error", new Error(res.error));
     console.log(`(listener) Order #${id} marked as shipped`);
+    bus.emit("order:statusChanged", { id, status: "shipped" });
+    saveOrders(store.getAllOrders(), DB_FILE);
 });
 
 bus.on("order:canceled", ({ id }) => {
     const res = store.updateStatus(id, "canceled");
     if (!res.ok) return bus.emit("error", new Error(res.error));
     console.log(`(listener) Order #${id} marked as canceled`);
+    bus.emit("order:statusChanged", { id, status: "canceled" });
+    saveOrders(store.getAllOrders(), DB_FILE);
+});
+
+// status changed log
+bus.on("order:statusChanged", ({ id, status }) => {
+    console.log(`[EVT] statusChanged  #${id} → ${status}`);
 });
 
 // errors
